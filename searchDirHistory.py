@@ -24,6 +24,53 @@
 
 import os, sys, termios, tty, select, fcntl, struct
 
+import collections
+
+class OrderedSet(collections.OrderedDict, collections.MutableSet):
+
+    def update(self, *args, **kwargs):
+        if kwargs:
+            raise TypeError("update() takes no keyword arguments")
+
+        for s in args:
+            for e in s:
+                 self.add(e)
+
+    def add(self, elem):
+        self[elem] = None
+
+    def discard(self, elem):
+        self.pop(elem, None)
+
+    def __le__(self, other):
+        return all(e in other for e in self)
+
+    def __lt__(self, other):
+        return self <= other and self != other
+
+    def __ge__(self, other):
+        return all(e in self for e in other)
+
+    def __gt__(self, other):
+        return self >= other and self != other
+
+    def __repr__(self):
+        return 'OrderedSet([%s])' % (', '.join(map(repr, self.keys())))
+
+    def __str__(self):
+        return '{%s}' % (', '.join(map(repr, self.keys())))
+
+    difference = property(lambda self: self.__sub__)
+    difference_update = property(lambda self: self.__isub__)
+    intersection = property(lambda self: self.__and__)
+    intersection_update = property(lambda self: self.__iand__)
+    issubset = property(lambda self: self.__le__)
+    issuperset = property(lambda self: self.__ge__)
+    symmetric_difference = property(lambda self: self.__xor__)
+    symmetric_difference_update = property(lambda self: self.__ixor__)
+    union = property(lambda self: self.__or__)
+
+
 def searchPaths(paths, searchTerms):
 
     tailFilter = None
@@ -71,6 +118,7 @@ def blankWorkArea(numRows):
 #
 
 def handleUserIO(paths, searchChars):
+    #
     # Some obscure ioctl tickling to get the size of the terminal window
     height, width, hp, wp = struct.unpack('HHHH', fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
     blankString = ''.join(int(width)*[' '])
@@ -79,8 +127,8 @@ def handleUserIO(paths, searchChars):
     numResults = 10
     if len(paths) < numResults: numResults = len(paths) - 1
     if numResults < 1: 
-    	sys.stderr.write("Not enough directory entries\n")
-    	sys.exit(1)
+        sys.stderr.write("Not enough directory entries\n")
+        sys.exit(1)
     numRows = numResults + 1
     resOffset = -1
     c = None
@@ -117,8 +165,10 @@ def handleUserIO(paths, searchChars):
             sys.stderr.write(searchString + '\n')
             # Print out the ranked paths
             for i in range(0, numResults):
-                if i == resOffset: sys.stderr.write("*") # mark the selected index
-                sys.stderr.write("[%i] %s\n" % (i, rankedPaths [i] [2] [-(width-4):]))
+                marker = "[%i]" % (i)
+                if i == resOffset:
+                    marker = ">>>"
+                sys.stderr.write("%s %s\n" % (marker, rankedPaths [i] [2] [-(width-4):]))
             # Return to the original position
             for i in range(0, numRows):sys.stderr.write('\x1b' + '[' + 'A')
             # Offset for the size of the search string
@@ -167,22 +217,17 @@ if __name__ == "__main__":
     if not os.path.isfile(dirHistFile):
         print "Directory history file not found:", dirHistFile
         sys.exit(1)
-
-    # FIXME: Optimise by storing the processed list as a pickle, purge the dir file
-    rawPaths = open(dirHistFile).read().split('\n')
-    rawPaths.reverse()
-    # Purge any duplicates
-    paths = []
-    uniqPaths = set()
-    for rawPath in rawPaths:
-        if not rawPath in uniqPaths:
-            uniqPaths.add(rawPath)
-            paths.append(rawPath)
-    # Hacky work around for path order
-    paths.reverse()
-    open(dirHistFile, 'w').write('\n'.join(paths))
-    paths.reverse()
     
+    rawPaths = open(dirHistFile).read().split('\n')
+    
+    # We iterate in reverse order over list from new to old
+    # removing duplicates as we go
+    uniquePaths = OrderedSet()
+    for rawPath in reversed(rawPaths):
+        uniquePaths.add(rawPath)
+    paths = [p for p in uniquePaths]
+    open(dirHistFile, 'w').write('\n'.join(reversed(paths)))
+    # Setup terminal interface and wait for user input
     handleUserIO(paths, list(' '.join(sys.argv[1:])))
 #
 
