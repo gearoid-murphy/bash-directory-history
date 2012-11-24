@@ -22,54 +22,11 @@
 # MA 02111-1307, USA.
 #
 
-import os, sys, termios, tty, select, fcntl, struct
+import os, sys, termios, tty, select, fcntl, struct, collections
 
-import collections
-
-class OrderedSet(collections.OrderedDict, collections.MutableSet):
-
-    def update(self, *args, **kwargs):
-        if kwargs:
-            raise TypeError("update() takes no keyword arguments")
-
-        for s in args:
-            for e in s:
-                 self.add(e)
-
-    def add(self, elem):
-        self[elem] = None
-
-    def discard(self, elem):
-        self.pop(elem, None)
-
-    def __le__(self, other):
-        return all(e in other for e in self)
-
-    def __lt__(self, other):
-        return self <= other and self != other
-
-    def __ge__(self, other):
-        return all(e in self for e in other)
-
-    def __gt__(self, other):
-        return self >= other and self != other
-
-    def __repr__(self):
-        return 'OrderedSet([%s])' % (', '.join(map(repr, self.keys())))
-
-    def __str__(self):
-        return '{%s}' % (', '.join(map(repr, self.keys())))
-
-    difference = property(lambda self: self.__sub__)
-    difference_update = property(lambda self: self.__isub__)
-    intersection = property(lambda self: self.__and__)
-    intersection_update = property(lambda self: self.__iand__)
-    issubset = property(lambda self: self.__le__)
-    issuperset = property(lambda self: self.__ge__)
-    symmetric_difference = property(lambda self: self.__xor__)
-    symmetric_difference_update = property(lambda self: self.__ixor__)
-    union = property(lambda self: self.__or__)
-
+# Some obscure ioctl tickling to get the size of the terminal window
+height, width, hp, wp = struct.unpack('HHHH', fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
+blankString = ''.join(int(width)*[' '])
 
 def searchPaths(paths, searchTerms):
 
@@ -119,9 +76,7 @@ def blankWorkArea(numRows):
 
 def handleUserIO(paths, searchChars):
     #
-    # Some obscure ioctl tickling to get the size of the terminal window
-    height, width, hp, wp = struct.unpack('HHHH', fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
-    blankString = ''.join(int(width)*[' '])
+
     
     old_settings = termios.tcgetattr(sys.stdin)
     numResults = 10
@@ -209,23 +164,23 @@ def handleUserIO(paths, searchChars):
 
 
 if __name__ == "__main__":
-    rows, columns = os.popen('stty size', 'r').read().split()
-    #print rows, columns
-    blankString = ''.join(int(columns)*[' '])
-
+    #
     dirHistFile = os.path.join(os.environ["HOME"], ".dir_history.txt")
     if not os.path.isfile(dirHistFile):
         print "Directory history file not found:", dirHistFile
         sys.exit(1)
     
+    # Raw paths contains the history of 'cd'
+    # It may contain duplicate references to the same directory
     rawPaths = open(dirHistFile).read().split('\n')
     
     # We iterate in reverse order over list from new to old
     # removing duplicates as we go
-    uniquePaths = OrderedSet()
+    uniquePaths = collections.OrderedDict()
     for rawPath in reversed(rawPaths):
-        uniquePaths.add(rawPath)
-    paths = [p for p in uniquePaths]
+        uniquePaths [rawPath] = None
+    paths = list(uniquePaths)
+    #
     open(dirHistFile, 'w').write('\n'.join(reversed(paths)))
     # Setup terminal interface and wait for user input
     handleUserIO(paths, list(' '.join(sys.argv[1:])))
