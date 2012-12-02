@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# searchDirHistory.py - Search amongst directory nagivation history
+# searchDirHistory.py - Search amongst directory navigation history
 #
 # This file is part of the bash-directory-history project
 #
