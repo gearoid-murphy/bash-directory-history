@@ -65,6 +65,12 @@ install()
         echo "/etc" >> ~/.dir_history.txt
         echo "/usr" >> ~/.dir_history.txt
         echo "/bin" >> ~/.dir_history.txt
+        echo "/usr/share" >> ~/.dir_history.txt
+        echo "/usr/bin" >> ~/.dir_history.txt
+        echo "/lib" >> ~/.dir_history.txt
+        echo "/sys" >> ~/.dir_history.txt
+        echo "/dev" >> ~/.dir_history.txt
+        echo "/sbin" >> ~/.dir_history.txt
     fi
     
     echo
