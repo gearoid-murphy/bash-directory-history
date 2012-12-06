@@ -178,10 +178,12 @@ if __name__ == "__main__":
     # removing duplicates as we go
     uniquePaths = collections.OrderedDict()
     for rawPath in reversed(rawPaths):
-        uniquePaths [rawPath] = None
+        rawPath = rawPath.strip()
+        if len(rawPath) > 0:
+            uniquePaths [rawPath] = None
     paths = list(uniquePaths)
     #
-    open(dirHistFile, 'w').write('\n'.join(reversed(paths)))
+    open(dirHistFile, 'w').write('\n'.join(reversed(paths)) + '\n')
     # Setup terminal interface and wait for user input
     handleUserIO(paths, list(' '.join(sys.argv[1:])))
 #
