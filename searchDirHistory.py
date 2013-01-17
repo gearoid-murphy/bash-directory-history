@@ -183,7 +183,7 @@ if __name__ == "__main__":
             uniquePaths [rawPath] = None
     paths = list(uniquePaths)
     #
-    open(dirHistFile, 'w').write('\n'.join(reversed(paths)))
+    open(dirHistFile, 'w').write('\n'.join(reversed(paths)) + '\n')
     # Setup terminal interface and wait for user input
     handleUserIO(paths, list(' '.join(sys.argv[1:])))
 #
