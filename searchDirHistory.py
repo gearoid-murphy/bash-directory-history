@@ -147,16 +147,19 @@ def handleUserIO(paths, searchChars):
                 #
                 resOffset = -1 ;
             else:
-                assert len(chars) == 3
-                if chars [1] == '[' and chars [2] == 'B'and resOffset < numResults-1:
-                    resOffset += 1
-                elif chars [1] == '[' and chars [2] == 'A' and resOffset > 0:
-                    resOffset -= 1
+                if chars[0] == '\x1b':
+                    if chars [1] == '[' and chars [2] == 'B'and resOffset < numResults-1:
+                        resOffset += 1
+                    elif chars [1] == '[' and chars [2] == 'A' and resOffset > 0:
+                        resOffset -= 1
+                else:
+                    searchChars.extend(chars)
                 #
+                #assert len(chars) == 3, 'Unexpected chars: %s' % (str(chars))
             #
         #
     except:
-        #raise # for debugging...
+        # raise # for debugging...
         blankWorkArea(numRows)
         sys.exit(1)
     finally:
